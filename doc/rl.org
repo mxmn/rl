@@ -1,0 +1,289 @@
+* RL Problem
+** Problem Formulation
+/Agent/ and /Environment/: At each time step $t$ the agent is in state $S_t$; it executes /Action/
+$A_t$, comes into a new state $S_{t+1}$ and receives scalar /Reward/ $R_{t+1}$.
+
+/History/ is the sequence of states/observations, actions, and rewards:
+$$H_t=S_1,A_1,R_2,S_2,A_2,\dots,A_{t-2},R_{t-1},S_{t-1}$$
+
+The /Goal/ of the agent is to maximize the /return/ (total amount of rewards it receives (starting
+at time $t$)). The /Return/ $G_t$ is some specific function of the reward sequence. E.g.
+
+\[G_t = R_{t+1} + \gamma R_{t+2} \gamma^2 R_{t+3} + \dots = \sum_{k=0}^{\infty}\gamma^{k}R_{t+k+1} = R_{t+1} + \gamma G_{t+1} \]
+
+ where $0\le\gamma\le1$ is the /discount rate/. The discount rate is introduced for mathematical
+reasons (needs to be $<1$ for infinite sequences) and accounts for the intuition that immediate
+results matter more than far away uncertain results.
+
+/State/ $S_t\in\mathcal{S}$ is a function of history: $S_t = f(H_t)$. One can distinguish the
+environment state $S_t^e$, the agent state $S_t^a$. The information state (= Markov state) contains
+all useful information from the history.
+
+/Markov Property/: the future is independent of the past given the present. A state $S_t$ is Markov
+$\iff P[S_{t+1}|S_t] = P[S_{t+1}|S_1, \dots, S_t]$.
+
+Sometimes, the agent-environment interactions can be broken down into /sub-sequences/, called
+/episodes/. Each episode ends in a special state called the /terminal state/. Sometimes one needs to
+distinguish the set of all /non-terminal states/ $\mathcal{S}$ from the set of all states plus the
+terminal state, $\mathcal{S}^+$.
+
+If the agent-environment interaction does not break naturally into identifiable episodes, we call
+these /continuous tasks/, which can be limitless in time $T=\infty$. To unify the notation for
+episodic and continuous tasks, an absorbing state is introduced as the terminal state of an episode
+that transitions only to itself and generates zero rewards.
+
+
+
+** MDP
+A RL task that satisfies the Markov property is called a /Markov Decision Process/ (MDP). If the
+state and action spaces are finite, then it is called a /finite MDP/.
+
+A particular finite MDP is defined by its state and action sets and the /one-step dynamics/ of the
+environment: given any state $s$ and action $a$, the probability of each possible pair of next state
+$s'$ and reward $r$ is denoted as \[p(s',r|s,a) = Pr\{S_{t+1}=s', R_{t+1}=r| S_t=s,A_t=a \}\]
+Given these dynamics, one can compute anything else.
+
+For instance, the /expected rewards/ for state-action pairs $r(s,a)$ are
+
+$$r(s,a)= E[R_{t+1}|S_t=s,A_t=a] = \sum_{r\in \mathcal{R}}r\sum_{s'\in \mathcal{S}} p(s',r|s,a)$$
+
+The /state-transition probabilities/ $p(s'|s,a)$:
+
+$$p(s'|s,a) = Pr\{S_{t+1}=s'|S_t=s,A_t=a\}=\sum_{r\in \mathcal{R}}p(s',r|s,a)  $$
+
+The /expected rewards for state-action-next-step triples/:
+
+$$r(s,a,s')=E[R_{t+1}|S_t=s,A_t=a,S_{t+1}=s' ]= \frac{\sum_{r\in
+\mathcal{R}}rp(s',r|s,a)}{p(s'|s,a)}$$
+
+** Value Functions
+/Value Function/ is a prediction of future awards. It's a function of states (or state-action pairs)
+that estimates /how good/ it is for the agent to be in a given state or to perform an action in a
+given state.
+
+Stochastic /Policy/ is a mapping from each state $s\in \mathcal{S}$ and action $a\in \mathcal{A}(s)$ to the
+probability $\pi(a|s)$ of taking action $a$ when in state $s$:
+$$\pi(a|s) = Pr[A_t=a|S_t=s]$$
+A policy fully defines the behavior of an agent. MDP policies depend only on the current state (not
+the history) and are therefore stationary (time-independent).
+
+Deterministic policy is a mapping from state to action $\pi:s\to a$.
+
+The /value/ of a state $s$ under a policy $\pi$, denoted $v_{\pi}(s)$, is the expected return when
+starting in $s$ and following $\pi$ thereafter.
+
+The /state-value function for policy/ \pi for MDP is \[v_{\pi}(s)=E_{\pi}[G_t|S_t=s] =
+E_{\pi}\left[\left.\sum_{k=0}^{\infty}\gamma^k R_{t+k+1}\right|S_t=s \right] \]
+
+The /action-value function for policy/ \pi, starting from state $s$, taking the action $a$, and
+thereafter following $\pi$ is
+
+\[q_{\pi}(s,a)=E_{\pi}[G_t|S_t=s,A_t=a] = E_{\pi}\left[\left.\sum_{k=0}^{\infty}\gamma^k
+R_{t+k+1}\right|S_t=s, A_t=a \right] \]
+
+** Bellman equations
+/Bellman equation for/ $v_{\pi}$ expresses the recursive relationship between the value of a state
+and the values of its successor states. The value function $v_{\pi}$ is the unique solution to its
+Bellman equation.
+
+\begin{align}
+v_{\pi}(s) = E_{\pi}[G_t|S_t=s] &=E_{\pi}\left[\left.R_{t+1}+\gamma\sum_{k=0}^{\infty}\gamma^k
+R_{t+k+2}\right|S_t=s \right] = E_{\pi}[R_{t+1} + \gamma v_{\pi}(s')|S_t=s]
+\\
+ &= \sum_a\pi(a|s)\sum_{s',r}p(s',r|s,a)[r+\gamma v_{\pi}(s')] \qquad\qquad
+ \forall s\in \mathcal{S}
+\end{align}
+
+It can be represented in vector form as a set of linear equations:
+$$\v_{\pi} = \r_{\pi} + \gamma \P_{\pi} \v_{\pi}$$
+
+where $\v_{\pi}\in \mathbb{R}^{N_s}$ is a vector of state values for all states $s$, $\r_{\pi}\in
+\mathbb{R}^{N_s}$ is the vector of expected rewards over all states
+($\r_{\pi}(s)=E[R_{t+1}|S_t=s,A_t=a]$), $\P_{\pi}\in \mathbb{R}^{N_s\times N_s}$ is the state
+transition probability matrix ($\P_{s,s'}=Pr[S_{t+1}=s'|S_t=s,A_t=a]$).
+
+It can be solved directly
+$$\v_{\pi} = (\I-\gamma \P_{\pi})^{-1}\r_{\pi}$$
+
+with computational complexity of $O(n^3)$ for $n$ states, which is possible only for small numbers
+of states. Though, there are many iterative methods for large MRPs, such as dynamic programming,
+Monte-Carlo evaluation, and temporal-difference learning.
+
+Similarly, the Bellman equation for the action-value function is
+
+$$q_{\pi}(s, a) = E_{\pi}[G_t|S_t=s, A_t=a] &=E_{\pi}\left[\left.R_{t+1}+ \gamma
+q_{\pi}(s',a')|S_t=s, A_t=a]$$
+
+** Optimal Value Functions
+/Optimal state-value function/ is the maximum value function over all
+policies:
+$$v_*(s)=\max\limits_\pi v_\pi(s)$$
+
+/Optimal action-value function/ is the maximum action-value function over all policies:
+\begin{align}
+q_*(s, a)&=\max\limits_\pi q_\pi(s,a)\\
+&=E[R_{t+1}+\gamma v_{*}(S_{t+1})|S_t=s,A_t=a]
+\end{align}
+
+It is possible to solve the Bellman equations theoretically, though this is rarely possible in
+practice. The direct solution relies on at least three critical assumptions: (1) accurate knowledge
+of the dynamics of the environment; (2) enough computational resources; (3) Markov property. For
+example, the state space is usually so huge that it's not feasible to solve the direct problem in a
+reasonable amount of time. Therefore, one typically has to rely on approximate solutions.
+
+
+* Dynamic Programming
+/Dynamic/ stands for "sequential or temporal component" of the problem, while /Programming/ is to be
+understood in the mathematical sense which refers more to an approach or policy how to solve a
+problem (cf. linear programming or quadratic programming). /Dynamic programming/ is a method for
+solving complex problems by breaking them down into sub-problems. It is a very general solution
+method to problems which have two properties: (1) optimal solution can be decomposed into
+sub-problems, and (2) sub-problems recur many times and can be cached and reused.
+
+In terms of MDP, the Bellman equation gives recursive decomposition (1), and the value function
+stores and reuses solutions (2).
+
+Dynamic programming assumes full knowledge of the MDP and is used for /planning/.
+- For prediction ---  input: MDP + policy \pi; output: value function $v_{\pi}$
+- For control --- input: MDP; output: optimal value function $v_{*}$ and optimal policy $\pi_{*}$
+
+** Policy Iteration
+Iterate until converging to a policy, then take this policy as the new one, and estimate the value
+function for this policy; take the greedy policy for the new value function, etc. That is, we
+/iterate by policies/.
+
+It will converge to the optimal value function and policy.
+
+** Value Iteration
+In this case, we update the used policy with every computation of the value function. This value
+function may not correspond to any policy.
+
+** Synchronous Programming Algorithms
+All of these are planning problems:
+
+| Problem    | Bellman Equation                                         | Algorithm                   |
+|------------+----------------------------------------------------------+-----------------------------|
+| Prediction | Bellman Expectation Equation                             | Iterative Policy Evaluation |
+| Control    | Bellman Expectation Equation + Greedy Policy Improvement | Policy Iteration            |
+| Control    | Bellman Optimality Equation                              | Value Iteration             |
+
+** Asynchronous Dynamic Programming
+Asynchronous DP backs up states individually, in any order. Still guaranteed to converge to the
+optimal value function.
+- In-place DP: simply overriding the state value with the newly computed one.
+- Prioritized Sweeping: use magnitude of Bellman error to guide state selection.
+- Real-time DP
+
+* Reviews
+** Sutton & Barto, 2016: RL: An Introduction
+*** Chapter 1: The Reinforcement Learning Problem
+*** Part 1: Tabular Solution Methods
+*** Chapter 2: Multi-arm Bandits
+Addresses a special case of a RL problem where there is only a single state.
+*** Chapter 3: Finite Markov Decision Processes
+Provides the general problem formulation of the RL problem in terms of MDP, and its main ideas,
+including Bellman equations and value functions. Discusses the Agent-Environment interface; goals,
+rewards, and the return.
+*** Chapter 4: Dynamic Programming
+This and the next two chapters describe fundamental classes of methods for solving MDP
+problems. Dynamic programming methods are well developed mathematically, but require a complete and
+accurate model of the environment.
+*** Chapter 5: Monte Carlo Methods
+Monte Carlo methods don't require a model and are conceptually simple, but are not well suited for
+step-by-step incremental computation.
+*** Chapter 6: Temporal-Difference Learning
+Temporal-difference methods don't require a model and are fully incremental, but are more complex to
+analyze.
+*** Chapter 7: Multi-step Bootstrapping
+Describes how the strengths of Monte Carlo and the temporal-difference methods can be combined via
+the use of eligibility traces.
+*** Chapter 8: Planning and Learning with Tabular Methods
+Describes how the temporal-difference learning methods can be combined with model learning and
+planning methods (such as dynamic programming) for a complete and unified solution to the tabular RL
+problem.
+
+
+*** Part 2: Approximate Solution Methods
+*** Part 3: Looking Deeper
+** David Silver, 2015: RL UCL Course
+*** Lecture 1: Intro to RL
+- Policy is agent's behavior, i.e. a map from state to action
+  - Deterministic policy: $$a = \pi(s)$$
+  - Stochastic policy: $$\pi(a|s) = P[A_t=a|S_t=s]$$
+- Model: A model predicts that the environment will do next:
+- $\mathcal{P}$ predicts the next state, eg. $$\mathcal{P}_{ss'}^a = P[S_{t+1}=s'| S_t=s, A_t=a]$$
+- $\mathcal{R}$ predicts the next (immediate) reward, eg. $$\mathcal{R}_s^a=E[R_{t+1}|S_t=s,A_t=a]$$
+- Categorizing RL agents:
+  - value based (no policy (implicit), value function)
+  - policy based (policy, no value function)
+  - actor critic (policy, value function)
+  - model free (policy and/or value function; no model)
+  - model based (policy and/or value function; model)
+- Exploration and Exploitation
+*** Lecture 2: Markov Decision Processes (MDP)
+- MDP formally describes an environment for RL
+- Markov Property: the future is independent of the past given the present
+- State Transition Matrix defines transition probabilities from all
+  states $s$ to all successor states $s'$: $$\mathcal{P} = \bvec{something}$$
+- Markov Process (or Markov Chain) is a memoryless random process,
+  ie. a sequence of random states $S_1, S_2, \dots$ with the Markov
+  property. It is a tuple $(\mathcal{S}, \mathcal{P})$
+- Markov Reward Process is a Markov chain with values $(\mathcal{S}, \mathcal{P}, \mathcal{R}, \gamma)$
+  - The Return $G_t$ is the total discounted reward from time-step
+    $t$: $$G_t = R_{t+1} + \gamma R_{t+2} + \dots = \sum_{k=0}^\infty
+    \gamma^k R_{t+k+1}$$
+  - State Value Function of an MRP is the expected return starting from state $s$:
+    $$v(s) = E[G_t|S_t=s]$$
+  - MRP Bellman Equation is a linear equation: $$\v = \R + \gamma \P \v$$
+    - can be solved directly, with computational complexity of
+      $O(n^3)$ for $n$ states, which is possible only for small
+      states.
+    - Many iterative methods for large MRPs:
+      - dynamic programming
+      - Monte-Carlo evaluation
+      - Temporal-Difference learning
+- Markov Decision Process (MDP) is a Markov Reward Process with
+  decisions. It is an environment in which all states are Makrov
+  $(\mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R}, \gamma)$
+  - Policies: ..
+  - Value functions
+    - The state-value function $v_\pi(s)=E_\pi[G_t|S_t=s]$ of an MDP
+      is the expected return starting from state $s$ and then
+      following policy $\pi$.
+    - The action-value function $q_\pi(s,a)=E_\pi[G_t|S_t=s,A_t=a]$ is
+      the expected return starting from state $s$, taking action $a$,
+      and then following policy $\pi$.
+  - Bellman Expectation Equation can be expressed via $$v_\pi =
+    \R^\pi + \gamma \P^\pi v_\pi$$
+  - Optimal state-value function $v_*(s)=\max_\pi v_\pi(s)$ is the
+    maximum value function over all policies.
+  - Optimal action-value function $q_*(s, a)=\max_\pi q_\pi(s,a)$ is
+    the maximum action-value function over all policies.
+
+
+*** Lecture 3: Planning by Dynamic Programming
+*** Lecture 4: Model-Free Prediction
+*** Lecture 5: Model-Free Control
+*** Lecture 6: Value Function Approximation
+*** Lecture 7: Policy Gradient Methods
+*** Lecture 8: Integrating Learning and Planning
+*** Lecture 9: Exploration and Exploitation
+*** Lecture 10: Case Study: RL in Classic Games
+* Notations
+$\mathcal{S, A, R}$ are sets of all possible states, actions and rewards.
+
+* References
+- Sutton & Barto: https://webdocs.cs.ualberta.ca/~sutton/
+- Silver: [[https://www.youtube.com/watch?v=2pWv7GOvuf0&list=PL7-jPKtc4r78-wCZcQn5IqyuWhBZ8fOxT][youtube]], [[http://www0.cs.ucl.ac.uk/staff/d.silver/web/Teaching.html][slides]]
+- OpenAI [[https://gym.openai.com/][gym]]
+- WildML [[http://www.wildml.com/2016/10/learning-reinforcement-learning/][rl]]
+- Udacity GeorgiaTech [[https://www.udacity.com/course/reinforcement-learning--ud600][rl course]]
+
+* COMMENT
+#+TITLE: Reinforcement Learning Revisited
+# +DATE: \today, \currenttime
+#+AUTHOR:
+# +DATE: today
+# No need for a table of contents, unless your paper is quite long.
+# +OPTIONS: toc:nil
+#+OPTIONS: toc:2
