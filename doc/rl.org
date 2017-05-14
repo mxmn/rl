@@ -7,11 +7,11 @@ $A_t$, comes into a new state $S_{t+1}$ and receives scalar /Reward/ $R_{t+1}$.
 $$H_t=S_1,A_1,R_2,S_2,A_2,\dots,A_{t-2},R_{t-1},S_{t-1}$$
 
 The /Goal/ of the agent is to maximize the /return/ (total amount of rewards it receives (starting
-at time $t$)). The /Return/ $G_t$ is some specific function of the reward sequence. E.g.
+at time $t+1$)). The /Return/ $G_t$ is some specific function of the reward sequence. E.g.
 
 \[G_t = R_{t+1} + \gamma R_{t+2} \gamma^2 R_{t+3} + \dots = \sum_{k=0}^{\infty}\gamma^{k}R_{t+k+1} = R_{t+1} + \gamma G_{t+1} \]
 
- where $0\le\gamma\le1$ is the /discount rate/. The discount rate is introduced for mathematical
+where $0\le\gamma\le1$ is the /discount rate/. The discount rate is introduced for mathematical
 reasons (needs to be $<1$ for infinite sequences) and accounts for the intuition that immediate
 results matter more than far away uncertain results.
 
@@ -32,42 +32,39 @@ these /continuous tasks/, which can be limitless in time $T=\infty$. To unify th
 episodic and continuous tasks, an absorbing state is introduced as the terminal state of an episode
 that transitions only to itself and generates zero rewards.
 
-
-
 ** MDP
 A RL task that satisfies the Markov property is called a /Markov Decision Process/ (MDP). If the
 state and action spaces are finite, then it is called a /finite MDP/.
 
 A particular finite MDP is defined by its state and action sets and the /one-step dynamics/ of the
 environment: given any state $s$ and action $a$, the probability of each possible pair of next state
-$s'$ and reward $r$ is denoted as \[p(s',r|s,a) = Pr\{S_{t+1}=s', R_{t+1}=r| S_t=s,A_t=a \}\]
+$s'$ and reward $r$ is
+\[p(s',r|s,a) = Pr\{S_{t+1}=s', R_{t+1}=r| S_t=s,A_t=a \}\]
+
 Given these dynamics, one can compute anything else.
-
-For instance, the /expected rewards/ for state-action pairs $r(s,a)$ are
-
+- the /expected reward/ is
 $$r(s,a)= E[R_{t+1}|S_t=s,A_t=a] = \sum_{r\in \mathcal{R}}r\sum_{s'\in \mathcal{S}} p(s',r|s,a)$$
-
-The /state-transition probabilities/ $p(s'|s,a)$:
-
-$$p(s'|s,a) = Pr\{S_{t+1}=s'|S_t=s,A_t=a\}=\sum_{r\in \mathcal{R}}p(s',r|s,a)  $$
-
-The /expected rewards for state-action-next-step triples/:
-
+$$r(s)= E[R_{t+1}|S_t=s] = \sum_{r\in \mathcal{R}}r\sum_{s'\in \mathcal{S}}\sum_{a\in \mathcal{A}}
+p(a|s)p(s',r|s,a)$$
+- the /state-transition probabilities/:
+$$p(s'|s,a) = Pr\{S_{t+1}=s'|S_t=s,A_t=a\}=\sum_{r\in \mathcal{R}}p(s',r|s,a)$$
+$$p(s'|s) = Pr\{S_{t+1}=s'|S_t=s\}=\sum_{r\in \mathcal{R}}\sum_a p(a|s)p(s',r|s,a)$$
+- the /expected rewards for state-action-next-step triples/:
 $$r(s,a,s')=E[R_{t+1}|S_t=s,A_t=a,S_{t+1}=s' ]= \frac{\sum_{r\in
 \mathcal{R}}rp(s',r|s,a)}{p(s'|s,a)}$$
-
+- probability of reward in a state:
+$$p(r|s)=  Pr\{R_{t+1}=r|S_t=s\}=\sum_{s',a} p(a|s)p(s',r|s,a)$$
+- note that $p(a|s)=\pi(a|s)$ is the stochastic policy of the agent
 ** Value Functions
-/Value Function/ is a prediction of future awards. It's a function of states (or state-action pairs)
-that estimates /how good/ it is for the agent to be in a given state or to perform an action in a
-given state.
+/Value Function/ is a prediction of future awards: /how good/ is it to be in a state or to perform
+an action in a state.
 
-Stochastic /Policy/ is a mapping from each state $s\in \mathcal{S}$ and action $a\in \mathcal{A}(s)$ to the
-probability $\pi(a|s)$ of taking action $a$ when in state $s$:
-$$\pi(a|s) = Pr[A_t=a|S_t=s]$$
-A policy fully defines the behavior of an agent. MDP policies depend only on the current state (not
-the history) and are therefore stationary (time-independent).
+Stochastic /Policy/ is a mapping from each state $s\in \mathcal{S}$ and action $a\in \mathcal{A}(s)$
+to the probability of taking action $a$ when in state $s$: $$\pi(a|s) = Pr[A_t=a|S_t=s]$$
 
 Deterministic policy is a mapping from state to action $\pi:s\to a$.
+ MDP policies depend only on the current state (not the history) and are therefore stationary
+(time-independent).
 
 The /value/ of a state $s$ under a policy $\pi$, denoted $v_{\pi}(s)$, is the expected return when
 starting in $s$ and following $\pi$ thereafter.
@@ -87,11 +84,12 @@ and the values of its successor states. The value function $v_{\pi}$ is the uniq
 Bellman equation.
 
 \begin{align}
-v_{\pi}(s) = E_{\pi}[G_t|S_t=s] &=E_{\pi}\left[\left.R_{t+1}+\gamma\sum_{k=0}^{\infty}\gamma^k
-R_{t+k+2}\right|S_t=s \right] = E_{\pi}[R_{t+1} + \gamma v_{\pi}(s')|S_t=s]
-\\
- &= \sum_a\pi(a|s)\sum_{s',r}p(s',r|s,a)[r+\gamma v_{\pi}(s')] \qquad\qquad
- \forall s\in \mathcal{S}
+v_{\pi}(s) &= E_{\pi}[G_t|S_t=s] = E_{\pi}[R_{t+1} + \gamma G_{t+1}|S_t=s]
+ = E_{\pi}[R_{t+1}] + \gamma E[G_{t+1}|S_t=s] \\
+ &= \sum_{s',r, a}p(a|s)p(s',r|s,a) r + \gamma \sum_{s'}E_\pi[G_{t+1}|S_{t+1}=s'] \\
+ &= \sum_{s',r, a}p(a|s)p(s',r|s,a) r +
+ \gamma \sum_{s'} \left(\sum_{r, a}p(a|s)p(s',r|s,a) v_{\pi}(s')\right)\\
+ &= \sum_a\pi(a|s)\sum_{s',r}p(s',r|s,a)[r+\gamma v_{\pi}(s')] \qquad\qquad \forall s\in \mathcal{S}
 \end{align}
 
 It can be represented in vector form as a set of linear equations:
@@ -106,17 +104,20 @@ It can be solved directly
 $$\v_{\pi} = (\I-\gamma \P_{\pi})^{-1}\r_{\pi}$$
 
 with computational complexity of $O(n^3)$ for $n$ states, which is possible only for small numbers
-of states. Though, there are many iterative methods for large MRPs, such as dynamic programming,
+of states. Though, there are iterative methods for large MRPs, such as dynamic programming,
 Monte-Carlo evaluation, and temporal-difference learning.
 
 Similarly, the Bellman equation for the action-value function is
 
-$$q_{\pi}(s, a) = E_{\pi}[G_t|S_t=s, A_t=a] &=E_{\pi}\left[\left.R_{t+1}+ \gamma
-q_{\pi}(s',a')|S_t=s, A_t=a]$$
+$$q_{\pi}(s, a) = E_{\pi}[G_t|S_t=s, A_t=a] &=E_{\pi}[R_{t+1}+ \gamma
+q_{\pi}(s',a')|S_t=s, A_t=a] = \sum_{s',r}p(s',r|s,a)(r+\gamma v_{\pi}(s'))$$
 
 ** Optimal Value Functions
-/Optimal state-value function/ is the maximum value function over all
-policies:
+/Optimal policy/
+$$\pi_{*}:\ \pi_{*}(a|s) = \begin{cases} 1&\text{if}\ a=\argmax_a q_{*}(s,a)\\ 0&\text{else}
+\end{cases}$$
+
+/Optimal state-value function/ is the maximum value function over all policies:
 $$v_*(s)=\max\limits_\pi v_\pi(s)$$
 
 /Optimal action-value function/ is the maximum action-value function over all policies:
@@ -125,12 +126,39 @@ q_*(s, a)&=\max\limits_\pi q_\pi(s,a)\\
 &=E[R_{t+1}+\gamma v_{*}(S_{t+1})|S_t=s,A_t=a]
 \end{align}
 
+Bellman optimality equations:
+\begin{align}
+v_{*}(s)&=\max_{\pi} v_{\pi}(s)=\max_a q_{*}(s,a) = \max_a E[R_{t+1}+\gamma
+v_{*}(s')|S_t=s,A_t=a] \\ &= \max_a \sum_{s',r}p(s',r|s,a)r + \gamma \max_a
+\sum_{s',r}p(s',r|s,a)v_{*}(s') \\
+&= \max_a\sum_{s',r}p(s',r|s,a)[r+\gamma v_{*}(s')]
+\end{align}
+
+\begin{align}
+q_{*}(s,a)&= E[R_{t+1}+\gamma \max_{a'} q_{*}(s',a')|S_t=s,A_t=a]
+= \sum_{s',r}p(s',r|s,a)[r+\gamma \max_{a'} q_{*}(s',a')]
+\end{align}
+
+** Planning / Learning Solutions
+
+/Policy evaluation/: find $v_{\pi}(s)$ given $\pi$. Can be solved directly or via iterative
+approaches.
+
+/Policy improvement/: greedy deterministic.
+$\pi'(s)=\argmax_a q_{\pi}(s,a) \To q_{\pi}(s,\pi'(s))\ge q_{\pi}(s,\pi(s))\forall s \To v_{\pi'}(s)
+\ge v_{\pi}(s)$. If $\pi'(s)==\pi(s) \iff \pi'(s)==\pi_{*}(s)$.
+
+/Policy iteration/: alternate between policy evaluation and improvement.
+
+/Value iteration/: update policy at every time step.
+
+/Generalized policy iteration/: policy iteration at finer granularity.
+
 It is possible to solve the Bellman equations theoretically, though this is rarely possible in
 practice. The direct solution relies on at least three critical assumptions: (1) accurate knowledge
 of the dynamics of the environment; (2) enough computational resources; (3) Markov property. For
 example, the state space is usually so huge that it's not feasible to solve the direct problem in a
 reasonable amount of time. Therefore, one typically has to rely on approximate solutions.
-
 
 * Dynamic Programming
 /Dynamic/ stands for "sequential or temporal component" of the problem, while /Programming/ is to be
@@ -174,6 +202,123 @@ optimal value function.
 - Prioritized Sweeping: use magnitude of Bellman error to guide state selection.
 - Real-time DP
 
+
+** Backup
+DP uses /full-width/ backups.
+
+* Model-Free Prediction
+** Monte Carlo Learning
+- learns directly from experience
+- model free: unknown MDP
+- learns from complete episodes
+- based on the mean return
+*** Incremental Mean
+\begin{align}
+\mu_k= \frac{1}{k}\sum_j^k x_j= \frac{1}{k}\left(x_k+\sum_{j=1}^{k-1}x_j \right)
+=\frac{1}{k}(x_k+(k-1)\mu_{{k-1}}) = \mu_{k-1}+ \frac{1}{k}(x_k-\mu_{k-1})
+\end{align}
+*** Incremental Monte-Carlo Updates
+\[N(S_{t})\gets N(S_t)+1\qquad v(S_t) += \frac{G_t-v(S_t)}{N(S_t)}  \]
+In non-stationary problems, track a running mean, ie. forget old episodes:
+\[v(S_t) \gets v(S_t) + \alpha(G_t-v(S_t))\]
+
+** Temporal-Difference Learning
+- learns directly from experience
+- model-free
+- learns from incomplete episodes, by /bootstrapping/
+- updates a guess towards a guess
+
+** Summary on Model-Free Prediction Methods
+- MC has high variance, zero bias
+  - good convergence properties (even with function approximation)
+  - not very sensitive to initial value
+  - simple to understand and to use
+  - does not exploit Markov property
+    - usually more efficient in non-Markov environments
+  - does not bootstrap
+  - samples
+- TD has low variance, some bias
+  - usually more efficient than MC
+  - TD(0) converges to $v_{\pi}(s)$ (not always with function approximation)
+  - more sensitive to initial value
+  - TD exploits Markov property
+    - usually more efficient in Markov environments
+  - bootstraps
+  - samples
+
+/Bootstrapping/: update involves an estimate
+- MC does not
+- DP and TD do
+
+/Sampling/: update samples an expectation
+- DP does not
+- MC and TD do
+
+* Model-Free Control
+
+Relationship between DP and TD
+|                                           | Full Backup (DP)            | Sample Backup (TD)    |
+|-------------------------------------------+-----------------------------+-----------------------|
+| Bellman expectation eq for $v_{\pi}(s)$   | Iterative policy evaluation | TD learning           |
+| Bellman expectation eq for $q_{\pi}(s,a)$ | Q-policy iteration          | SARSA                 |
+| Bellman optimality eq for $q_{*}(s,a)$    | Q-value iteration           | Q-Learning (SARSAMAX) |
+
+* Terminology
+/State/, /Agent/ and /Environment/: with every action the agent observes the environment and is affected by the
+environment by transitioning to the next state and receiving a reward.
+
+The /Goal/ of the agent is to maximize the /return/ $G_t$.
+
+/Discount rate/: \gamma
+
+/Markov Property/: the future is independent of the past given the present.
+
+/Episode, sub-sequence, terminal state, continuous task/
+
+A RL task that satisfies the /Markov property/ is called a /Markov Decision Process/ (MDP). If the state and action
+spaces are finite, then it is called a /finite MDP/:
+\[p(s',r|s,a) = Pr\{S_{t+1}=s', R_{t+1}=r| S_t=s,A_t=a \}\]
+
+/Value Function/ is a prediction of future awards.
+
+/Policy/ is a mapping from state to action (deterministic or stochastic).
+
+/Bellman equation/ expresses the recursive relationship between the state value $v$ and the values of its successor
+states; and similar for state-action function $q$.
+
+/Optimal policy, state-value function, action-value function/
+
+/Model-based vs. Model-free/: synonymous with planning and learning methods.
+
+/Planning/ vs. /Learning/: methods that require a model (e.g. DP or heuristic search) are called planning
+methods, while model-free methods (e.g. MC or TD) are called learning methods.
+
+/Prediction/ vs. /Control/: finding the value function of a policy $\pi$ is called /prediction/. Finding the
+optimal policy and value function is called /control/.
+
+/Model/:
+
+/Backup/:
+
+/Bootstrapping/: update involves an estimate: (DP/TD do bootstraps)
+
+/Sampling/: update samples an expectation (MC/TD do sampling)
+
+
+** Algorithms
+- \gamma - discount rate
+- \alpha - forgetting old episodes; e.g. tracking running mean in MC
+- \sigma
+- \delta
+*** DP
+- Synchronous: for prediction & control
+- Asynchronous
+*** MC
+*** TD
+*** HS
+Heuristic search
+
+
 * Reviews
 ** Sutton & Barto, 2016: RL: An Introduction
 *** Chapter 1: The Reinforcement Learning Problem
@@ -211,8 +356,8 @@ problem.
   - Deterministic policy: $$a = \pi(s)$$
   - Stochastic policy: $$\pi(a|s) = P[A_t=a|S_t=s]$$
 - Model: A model predicts that the environment will do next:
-- $\mathcal{P}$ predicts the next state, eg. $$\mathcal{P}_{ss'}^a = P[S_{t+1}=s'| S_t=s, A_t=a]$$
-- $\mathcal{R}$ predicts the next (immediate) reward, eg. $$\mathcal{R}_s^a=E[R_{t+1}|S_t=s,A_t=a]$$
+  - $\mathcal{P}$ predicts the next state, eg. $$\mathcal{P}_{ss'}^a = P[S_{t+1}=s'| S_t=s, A_t=a]$$
+  - $\mathcal{R}$ predicts the next (immediate) reward, eg. $$\mathcal{R}_s^a=E[R_{t+1}|S_t=s,A_t=a]$$
 - Categorizing RL agents:
   - value based (no policy (implicit), value function)
   - policy based (policy, no value function)
